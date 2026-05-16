@@ -43,7 +43,7 @@ ninja
 bitsandbytes
 
 # DramaBox finetune/runtime shared deps
-accelerate>=1.11.0
+accelerate>=1.12.0
 safetensors>=0.7.0
 sentencepiece>=0.2.0
 PyYAML>=6.0
