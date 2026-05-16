@@ -35,7 +35,7 @@ start_venv.bat
 *.swp
 *.swo
 *~
-Voice-Clone-Studio.code-workspace
+Voice-Clone-Studio-DramaBox.code-workspace
 
 # Project specific
 output/*
