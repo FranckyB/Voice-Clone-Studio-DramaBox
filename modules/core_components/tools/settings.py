@@ -178,10 +178,10 @@ class SettingsTool(Tool):
 
                                 gr.Markdown("### Model Downloading")
                                 components['settings_dramabox_models_path'] = gr.Textbox(
-                                    label="ComfyUI-DramaBox Models Folder",
+                                    label="ComfyUI Models Folder",
                                     value=_user_config.get("dramabox_models_path", ""),
-                                    info="Share DramaBox models with ComfyUI-DramaBox (requires latest ComfyUI-DramaBox).",
-                                    placeholder="e.g. D:\\ComfyUI\\custom_nodes\\ComfyUI-DramaBox\\models"
+                                    info="Reuse DramaBox models from ComfyUI (requires latest ComfyUI-DramaBox).\nPoint to ComfyUI's models folder",
+                                    placeholder="e.g. D:\\ComfyUI\\models"
                                 )
                                 components['reset_dramabox_models_path_btn'] = gr.Button("Reset", size="sm")
                             
@@ -620,12 +620,19 @@ class SettingsTool(Tool):
                 repo_id, filename = entry
                 try:
                     import os
-                    import shutil
                     from huggingface_hub import hf_hub_download, snapshot_download
 
                     base_dir = Path(__file__).parent.parent.parent.parent
-                    models_dir = base_dir / _user_config.get("models_folder", "models")
-                    dramabox_dir = models_dir / "dramabox"
+
+                    # If ComfyUI models path is set, download there so both apps share the files.
+                    # Otherwise fall back to VCS's own models folder.
+                    comfyui_models_path = _user_config.get("dramabox_models_path", "").strip()
+                    if comfyui_models_path:
+                        models_root = Path(comfyui_models_path)
+                    else:
+                        models_root = base_dir / _user_config.get("models_folder", "models")
+
+                    dramabox_dir = models_root / "dramabox"
                     dramabox_dir.mkdir(parents=True, exist_ok=True)
 
                     token = os.environ.get("HF_TOKEN")
@@ -644,9 +651,9 @@ class SettingsTool(Tool):
                         print(f"Done: {dest}")
                         return f"Downloaded: {dest.name}"
                     else:
-                        # Full repo (Gemma) — snapshot to a named subfolder
+                        # Full repo (Gemma) — snapshot inside dramabox/ subfolder
                         repo_name = repo_id.split("/")[-1]
-                        dest_dir = models_dir / repo_name
+                        dest_dir = dramabox_dir / repo_name
                         if dest_dir.exists() and any(dest_dir.iterdir()):
                             return f"Already downloaded: {repo_name}"
                         print(f"Downloading {repo_id} to {dest_dir}...")

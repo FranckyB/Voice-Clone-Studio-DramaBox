@@ -7,7 +7,7 @@
 
 ---
 
-> ⚠️ **DramaBox is highly prone to hallucination.** It will frequently add, drop, or mangle words — especially on longer texts. **Expect to generate multiple times** before getting a clean output. Using a seed lets you reproduce good results once you find them.
+> ⚠️ **DramaBox is highly prone to hallucination.** It will frequently add, drop, or mangle words — especially on longer texts. **Expect to generate multiple times** before getting a clean output. Using a seed lets you reproduce good results once you find them.  **It is also limited to around 45 seconds**
 
 ---
 
