@@ -68,7 +68,7 @@ Create voices from natural language descriptions — no audio needed, using Qwen
 ## Installation
 
 ### Prerequisites
-- Python 3.10-3.12
+- Python 3.11
 - Windows or Linux: CUDA GPU recommended for best performance
 - macOS: Apple Silicon works with MPS (training can be restricted)
 - SOX
