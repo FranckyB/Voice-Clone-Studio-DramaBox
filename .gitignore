@@ -46,6 +46,7 @@ datasets/*
 trained_models/*
 models/*
 *.wav
+!modules/core_components/notification.wav
 *.mp3
 *.prompt
 config.json

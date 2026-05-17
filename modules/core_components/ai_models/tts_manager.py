@@ -921,7 +921,8 @@ class TTSManager:
             if self._dramabox_server is not None:
                 paths = None  # not needed — server is already loaded
             else:
-                paths = self._dramabox_downloader_mod.get_all_paths()
+                comfyui_dir = self.user_config.get("dramabox_models_path", "").strip() or None
+                paths = self._dramabox_downloader_mod.get_all_paths(comfyui_models_dir=comfyui_dir)
 
             server_key = (
                 str(paths["transformer"]),
@@ -1006,7 +1007,8 @@ class TTSManager:
             self._dramabox_server_key = None
             empty_device_cache()
 
-        paths = self._dramabox_downloader_mod.get_all_paths()
+        comfyui_dir = self.user_config.get("dramabox_models_path", "").strip() or None
+        paths = self._dramabox_downloader_mod.get_all_paths(comfyui_models_dir=comfyui_dir)
         argv = [
             "--prompt", str(prompt).strip(),
             "--output", str(output_path),

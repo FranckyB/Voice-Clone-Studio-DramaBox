@@ -82,16 +82,18 @@ BUNDLED_ASSETS = {
 }
 
 
-def get_model_path(name: str, cache_dir: str = None) -> str:
-    """Download a model file from HF and return local path.
+def get_model_path(name, cache_dir=None, comfyui_models_dir=None):
+    """Return local path for a model file, downloading from HF only as a last resort.
 
-    Checks for a flat copy in {models_dir}/dramabox/ first (placed there by
-    the Settings > Download Model button).  Falls back to hf_hub_download via
-    the HF cache when the flat copy is absent.
+    Search order:
+        1. comfyui_models_dir/dramabox/<file>  (if set — share with ComfyUI-DramaBox)
+        2. {app_models}/dramabox/<file>        (VCS models folder, flat layout)
+        3. HuggingFace download                (unless offline mode is on)
 
     Args:
         name: One of 'transformer', 'audio_components', 'silence_latent'
-        cache_dir: Local cache directory (default: ~/.cache/dramabox)
+        cache_dir: HF cache directory (default: app models folder)
+        comfyui_models_dir: Path to ComfyUI-DramaBox models folder (optional)
 
     Returns:
         Local file path
@@ -109,7 +111,14 @@ def get_model_path(name: str, cache_dir: str = None) -> str:
     repo_path = MODEL_FILES[name]
     filename_only = Path(repo_path).name
 
-    # Check flat layout first: {app_models}/dramabox/<filename>
+    # 1. ComfyUI-DramaBox models folder (share weights — no duplication)
+    if comfyui_models_dir:
+        comfyui_path = Path(comfyui_models_dir) / "dramabox" / filename_only
+        if comfyui_path.exists():
+            logger.info(f"Found {name} in ComfyUI-DramaBox folder: {comfyui_path}")
+            return str(comfyui_path)
+
+    # 2. VCS flat layout: {app_models}/dramabox/<filename>
     flat_path = Path(FLAT_DRAMABOX_DIR) / filename_only
     if flat_path.exists():
         logger.info(f"Found {name} at {flat_path}")
@@ -133,19 +142,28 @@ def get_model_path(name: str, cache_dir: str = None) -> str:
     return local_path
 
 
-def get_gemma_path(cache_dir: str = None) -> str:
-    """Download Gemma 3 12B IT (pre-quantized bnb-4bit via unsloth) and return
-    the snapshot directory. Using the pre-quantized variant skips runtime
-    bitsandbytes quantization and ~halves the Gemma load time.
+def get_gemma_path(cache_dir=None, comfyui_models_dir=None):
+    """Return local Gemma snapshot directory, downloading from HF only as a last resort.
 
-    Checks for a flat copy in {models_dir}/<repo_name>/ first (placed there by
-    the Settings > Download Model button).  Falls back to snapshot_download via
-    the HF cache when the flat copy is absent.
+    Search order:
+        1. comfyui_models_dir/gemma-3-12b-it-bnb-4bit/  (if set — share with ComfyUI-DramaBox)
+        2. {app_models}/gemma-3-12b-it-bnb-4bit/         (VCS models folder, flat layout)
+        3. HuggingFace download                           (unless offline mode is on)
+
+    Using the pre-quantized bnb-4bit variant skips runtime bitsandbytes
+    quantization and ~halves the Gemma load time.
     """
     cache_dir = cache_dir or DEFAULT_CACHE
-
-    # Check flat layout first: {app_models}/<repo_name>/
     repo_name = GEMMA_REPO.split("/")[-1]
+
+    # 1. ComfyUI-DramaBox models folder
+    if comfyui_models_dir:
+        comfyui_path = Path(comfyui_models_dir) / repo_name
+        if comfyui_path.exists() and (comfyui_path / "config.json").exists():
+            logger.info(f"Found Gemma in ComfyUI-DramaBox folder: {comfyui_path}")
+            return str(comfyui_path)
+
+    # 2. VCS flat layout: {app_models}/<repo_name>/
     flat_path = Path(FLAT_DRAMABOX_DIR).parent / repo_name
     if flat_path.exists() and (flat_path / "config.json").exists():
         logger.info(f"Found Gemma at {flat_path}")
@@ -167,24 +185,29 @@ def get_gemma_path(cache_dir: str = None) -> str:
     return local_dir
 
 
-def get_all_paths(cache_dir: str = None) -> dict:
+def get_all_paths(cache_dir=None, comfyui_models_dir=None):
     """Download all required models and return paths dict.
+
+    Search order for each file:
+        1. comfyui_models_dir (if set)  — share weights with ComfyUI-DramaBox
+        2. VCS app models folder        — files placed by Settings > Download Model
+        3. HuggingFace download         — last resort
 
     Returns:
         {
-            'transformer': '/path/to/transformer.safetensors',
-            'audio_components': '/path/to/audio-components.safetensors',
+            'transformer': '/path/to/dramabox-dit-v1.safetensors',
+            'audio_components': '/path/to/dramabox-audio-components.safetensors',
             'silence_latent': '/path/to/silence_latent_frame.pt',
-            'gemma_root': '/path/to/unsloth/gemma-3-12b-it-bnb-4bit/',
+            'gemma_root': '/path/to/gemma-3-12b-it-bnb-4bit/',
         }
     """
     cache_dir = cache_dir or DEFAULT_CACHE
     paths = {}
 
     for name in MODEL_FILES:
-        paths[name] = get_model_path(name, cache_dir)
+        paths[name] = get_model_path(name, cache_dir, comfyui_models_dir=comfyui_models_dir)
 
-    paths["gemma_root"] = get_gemma_path(cache_dir)
+    paths["gemma_root"] = get_gemma_path(cache_dir, comfyui_models_dir=comfyui_models_dir)
     return paths
 
 

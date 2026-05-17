@@ -177,6 +177,14 @@ class SettingsTool(Tool):
                                 )
 
                                 gr.Markdown("### Model Downloading")
+                                components['settings_dramabox_models_path'] = gr.Textbox(
+                                    label="ComfyUI-DramaBox Models Folder",
+                                    value=_user_config.get("dramabox_models_path", ""),
+                                    info="Share DramaBox models with ComfyUI-DramaBox (requires latest ComfyUI-DramaBox).",
+                                    placeholder="e.g. D:\\ComfyUI\\custom_nodes\\ComfyUI-DramaBox\\models"
+                                )
+                                components['reset_dramabox_models_path_btn'] = gr.Button("Reset", size="sm")
+                            
                                 components['settings_offline_mode'] = gr.Checkbox(
                                     label="Offline Mode",
                                     value=_user_config.get("offline_mode", False),
@@ -524,6 +532,17 @@ class SettingsTool(Tool):
             outputs=[components['settings_ollama_url']]
         )
 
+        components['reset_dramabox_models_path_btn'].click(
+            lambda: "",
+            outputs=[components['settings_dramabox_models_path']]
+        )
+
+        components['settings_dramabox_models_path'].change(
+            lambda x: (save_preference("dramabox_models_path", x.strip()), "ComfyUI-DramaBox path saved.")[1],
+            inputs=[components['settings_dramabox_models_path']],
+            outputs=[components['settings_status']]
+        )
+
         def on_llm_backend_change(backend):
             show_llama = backend == "llama.cpp"
             _user_config["llm_backend"] = backend
@@ -539,11 +558,24 @@ class SettingsTool(Tool):
         def on_ollama_url_change(url):
             _user_config["llm_ollama_url"] = url.strip()
             save_config(_user_config)
+            return "Ollama URL saved."
 
         components['settings_ollama_url'].change(
             on_ollama_url_change,
             inputs=[components['settings_ollama_url']],
-            outputs=[]
+            outputs=[components['settings_status']]
+        )
+
+        components['settings_llama_cpp_path'].change(
+            lambda x: (save_preference("llama_cpp_path", x.strip()), "llama.cpp path saved.")[1],
+            inputs=[components['settings_llama_cpp_path']],
+            outputs=[components['settings_status']]
+        )
+
+        components['settings_llama_models_path'].change(
+            lambda x: (save_preference("llama_models_path", x.strip()), "LLM models path saved.")[1],
+            inputs=[components['settings_llama_models_path']],
+            outputs=[components['settings_status']]
         )
 
         def download_model_clicked(model_display_name):
