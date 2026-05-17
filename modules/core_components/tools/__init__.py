@@ -756,7 +756,6 @@ def build_shared_state(user_config, directories, constants, managers=None, confi
         download_model_from_huggingface as download_model_util,
         get_trained_vibevoice_models as get_trained_vibevoice_models_util,
         train_dramabox_model as train_dramabox_model_util,
-        convert_dramabox_lora_to_ltx as convert_dramabox_lora_to_ltx_util,
         stop_training as stop_training_util,
         is_training_active as is_training_active_util,
     )
@@ -929,8 +928,6 @@ def build_shared_state(user_config, directories, constants, managers=None, confi
             directories.get('OUTPUT_DIR').parent,  # project_root
             play_completion_beep, progress
         ),
-
-        'convert_dramabox_lora_to_ltx': convert_dramabox_lora_to_ltx_util,
 
         # Training control
         'stop_training': stop_training_util,

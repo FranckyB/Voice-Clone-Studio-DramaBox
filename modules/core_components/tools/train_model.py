@@ -82,20 +82,6 @@ class TrainModelTool(Tool):
                         components['start_training_btn'] = gr.Button("Start Training", variant="primary", size="lg")
                         components['stop_training_btn'] = gr.Button("Stop Training", variant="stop", size="lg", interactive=False)
 
-                    with gr.Accordion("Convert LoRA for LTX Inference", open=False):
-                        gr.Markdown(
-                            "Convert a trained DramaBox LoRA from PEFT format to the LTX-compatible format "
-                            "expected by the inference pipeline. Training auto-converts on completion — "
-                            "use this to manually convert existing checkpoints."
-                        )
-                        with gr.Column():
-                            components['convert_lora_input'] = gr.Textbox(
-                                label="LoRA file path",
-                                placeholder="e.g. trained_models/MyVoice/lora_best_00100.safetensors",
-                                scale=4
-                            )
-                            components['convert_lora_btn'] = gr.Button("Convert", variant="primary", scale=1)
-
                     with gr.Row():
                         train_quick_guide = dedent("""\
                             **Quick Guide:**
@@ -275,8 +261,6 @@ class TrainModelTool(Tool):
     @classmethod
     def setup_events(cls, components, shared_state):
         """Wire up Train Model tab events."""
-
-        convert_dramabox_lora_to_ltx = shared_state['convert_dramabox_lora_to_ltx']
 
         get_dataset_files = shared_state['get_dataset_files']
         get_dataset_folders = shared_state['get_dataset_folders']
@@ -528,29 +512,6 @@ class TrainModelTool(Tool):
 
         components['stop_training_btn'].click(
             handle_stop_training,
-            outputs=[components['training_status']]
-        )
-
-        # --- Convert LoRA button ---
-        def handle_convert_lora(input_path):
-            """Convert a PEFT DramaBox LoRA to LTX-compatible format."""
-            if not input_path or not input_path.strip():
-                return "❌ Error: Please enter a LoRA file path."
-            from pathlib import Path
-            from modules.core_components.tools import PROJECT_ROOT
-            p = Path(input_path.strip())
-            if not p.is_absolute():
-                p = PROJECT_ROOT / p
-            if not p.exists():
-                return f"❌ Error: File not found: {p}"
-            result = convert_dramabox_lora_to_ltx(p)
-            if result is None:
-                return "❌ Error: Conversion failed. Check that the file is a valid safetensors LoRA."
-            return f"Converted: {result}"
-
-        components['convert_lora_btn'].click(
-            handle_convert_lora,
-            inputs=[components['convert_lora_input']],
             outputs=[components['training_status']]
         )
 

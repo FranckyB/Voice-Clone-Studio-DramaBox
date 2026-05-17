@@ -143,7 +143,7 @@ class SettingsTool(Tool):
                                 )
                                 components['settings_manual_save'] = gr.Checkbox(
                                     label="Review Before Saving",
-                                    value=_user_config.get("manual_save", False),
+                                    value=_user_config.get("manual_save", True),
                                     info="Results stay in temp until you click Save.\nLets you keep only the ones you like. (Restart required)"
                                 )
 
@@ -165,7 +165,7 @@ class SettingsTool(Tool):
 
                                 components['settings_dramabox_cpu_offload'] = gr.Checkbox(
                                     label="DramaBox CPU Offloading",
-                                    value=_user_config.get("dramabox_cpu_offload", False),
+                                    value=_user_config.get("dramabox_cpu_offload", True),
                                     info="Saves VRAM but slower — disable for fast warm-server mode.",
                                     interactive=True
                                 )
@@ -194,6 +194,9 @@ class SettingsTool(Tool):
                                         "--- ASR ---",
                                         "Qwen3-ASR-Small",
                                         "Qwen3-ASR-Large",
+                                        "--- Sound Effects ---",
+                                        "MMAudio Medium (44kHz)",
+                                        "MMAudio Large v2 (44kHz)",
                                     ],
                                     value="DramaBox DiT v1"
                                 )
@@ -207,6 +210,8 @@ class SettingsTool(Tool):
                                     "DramaBox Gemma Text Encoder": ("unsloth/gemma-3-12b-it-bnb-4bit", None),
                                     "Qwen3-ASR-Small": "Qwen/Qwen3-ASR-0.6B",
                                     "Qwen3-ASR-Large": "Qwen/Qwen3-ASR-1.7B",
+                                    "MMAudio Medium (44kHz)": {"type": "mmaudio", "display_name": "Medium (44kHz)"},
+                                    "MMAudio Large v2 (44kHz)": {"type": "mmaudio", "display_name": "Large v2 (44kHz)"},
                                 }
 
                         with gr.Row():
@@ -545,6 +550,38 @@ class SettingsTool(Tool):
             if not model_display_name or model_display_name.startswith("---"):
                 return "❌ Please select an actual model (not a category header)"
             entry = components['MODEL_ID_MAP'].get(model_display_name, model_display_name)
+
+            # MMAudio entries — use foley_manager's download system
+            if isinstance(entry, dict) and entry.get("type") == "mmaudio":
+                try:
+                    from modules.core_components.ai_models.foley_manager import FoleyManager, MMAUDIO_SHARED_WEIGHTS
+                    base_dir = Path(__file__).parent.parent.parent.parent
+                    models_dir = base_dir / _user_config.get("models_folder", "models")
+                    fm = FoleyManager(user_config=_user_config, models_dir=models_dir)
+                    cfg = fm._get_model_config(entry["display_name"])
+                    files_to_download = [
+                        cfg["weight_path"],
+                        fm._ext_weights_dir / MMAUDIO_SHARED_WEIGHTS["vae"],
+                        fm._ext_weights_dir / MMAUDIO_SHARED_WEIGHTS["synchformer"],
+                    ]
+                    downloaded = []
+                    skipped = []
+                    for fp in files_to_download:
+                        if fp.exists():
+                            skipped.append(fp.name)
+                        else:
+                            fm._download_if_needed(fp)
+                            downloaded.append(fp.name)
+                    msg = []
+                    if downloaded:
+                        msg.append(f"Downloaded: {', '.join(downloaded)}")
+                    if skipped:
+                        msg.append(f"Already present: {', '.join(skipped)}")
+                    return "\n".join(msg) or "Done"
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    return f"❌ Download failed: {e}"
 
             # DramaBox entries — download directly to the models folder (no HF cache)
             if isinstance(entry, tuple):

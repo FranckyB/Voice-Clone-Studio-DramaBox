@@ -14,7 +14,7 @@ PROMPTS_FILE = Path(__file__).parent.parent.parent / "prompts.json"
 # prompt is reusable across both tools.
 PROMPT_CATEGORIES = {
     "prompt":       "Prompt",
-    "conversation": "Conversation",
+    # "conversation": "Conversation",
     "voice_design":  "Voice Design",
     "sfx":          "SFX Design",
     "custom":       "Custom",
@@ -23,7 +23,7 @@ PROMPT_CATEGORIES = {
 # Maps each tool's component prefix to the category it reads/writes.
 TOOL_CATEGORY_MAP = {
     "vc":   "prompt",
-    "conv": "conversation",
+    # "conv": "conversation",
     "vd":   "voice_design",
     "sfx":  "sfx",
 }
@@ -32,7 +32,7 @@ TOOL_CATEGORY_MAP = {
 # '_custom' is a local sentinel used by the Prompt Manager for the Custom entry.
 TARGET_CATEGORY_MAP = {
     "voice_clone.text":             "prompt",
-    "conversation.script":          "conversation",
+    # "conversation.script":          "conversation",
     "voice_design.reference":       "prompt",
     "voice_design.instructions":    "voice_design",
     "sfx.prompt":                   "sfx",
@@ -66,21 +66,21 @@ SYSTEM_PROMPTS = {
         "Aim for 3 to 6 sentences. End at the final closing quote — no trailing description after it. "
         "Output one compact paragraph with no headers, labels, or markdown."
     ),
-    "Conversation": (
-        "You are a voice performance writer for DramaBox text-to-audio synthesis. "
-        "Given a topic, scenario, or conflict, write a multi-speaker exchange where each line is a self-contained DramaBox audio prompt. "
-        "Each line must appear on its own line in this exact format: [n]: <audio prompt> — where n is the speaker number. "
-        "Each audio prompt describes the speaker's voice (age, timbre, tone, accent), their emotional state and delivery, "
-        "then places the spoken words inside double quotes. Performance direction goes around the quotes, never inside them. "
-        "Give each speaker a distinct voice character that stays consistent across their lines. "
-        "Vary emotional energy and pacing between speakers — not every line is the same intensity. "
-        "End each line at its final closing quote — no trailing description after the spoken words. "
-        "Example format:\n"
-        "[1]: A woman in her early 30s, sharp and direct, barely looking up from her screen: \"Did you hear about the new project?\"\n"
-        "[2]: A man in his mid 40s, measured and calm, sets down his coffee: \"Just got the email this morning.\"\n"
-        "[1]: Her tone shifts — genuinely curious now, leaning forward slightly: \"What do you think about the timeline?\"\n"
-        "Output only the lines in [n]: format — no narration, no headers, no extra formatting."
-    ),
+    # "Conversation": (
+    #     "You are a voice performance writer for DramaBox text-to-audio synthesis. "
+    #     "Given a topic, scenario, or conflict, write a multi-speaker exchange where each line is a self-contained DramaBox audio prompt. "
+    #     "Each line must appear on its own line in this exact format: [n]: <audio prompt> — where n is the speaker number. "
+    #     "Each audio prompt describes the speaker's voice (age, timbre, tone, accent), their emotional state and delivery, "
+    #     "then places the spoken words inside double quotes. Performance direction goes around the quotes, never inside them. "
+    #     "Give each speaker a distinct voice character that stays consistent across their lines. "
+    #     "Vary emotional energy and pacing between speakers — not every line is the same intensity. "
+    #     "End each line at its final closing quote — no trailing description after the spoken words. "
+    #     "Example format:\n"
+    #     "[1]: A woman in her early 30s, sharp and direct, barely looking up from her screen: \"Did you hear about the new project?\"\n"
+    #     "[2]: A man in his mid 40s, measured and calm, sets down his coffee: \"Just got the email this morning.\"\n"
+    #     "[1]: Her tone shifts — genuinely curious now, leaning forward slightly: \"What do you think about the timeline?\"\n"
+    #     "Output only the lines in [n]: format — no narration, no headers, no extra formatting."
+    # ),
     "Voice Design (Simple)": (
         "You are a voice styling assistant for text-to-speech generation. "
         "Convert user intent into concise style instructions focused on delivery only: tone, pacing, energy, "
@@ -141,18 +141,18 @@ PROMPT_TARGETS = {
             "User instruction:\n{instruction}"
         ),
     },
-    "conversation.script": {
-        "label": "Conversation: Prompt",
-        "tool": "Conversation",
-        "tab_id": "tab_conversation",
-        "component_key": "conversation_script",
-        "default_system_preset": "Conversation",
-        "template": (
-            "Create a conversation script strictly in [n]: (emotion) format. "
-            "No narration, no stage directions, no markdown.\n\n"
-            "User instruction:\n{instruction}"
-        ),
-    },
+    # "conversation.script": {
+    #     "label": "Conversation: Prompt",
+    #     "tool": "Conversation",
+    #     "tab_id": "tab_conversation",
+    #     "component_key": "conversation_script",
+    #     "default_system_preset": "Conversation",
+    #     "template": (
+    #         "Create a conversation script strictly in [n]: (emotion) format. "
+    #         "No narration, no stage directions, no markdown.\n\n"
+    #         "User instruction:\n{instruction}"
+    #     ),
+    # },
     "voice_design.reference": {
         "label": "Voice Design: Prompt",
         "tool": "Voice Design",
