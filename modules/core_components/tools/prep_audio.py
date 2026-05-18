@@ -278,6 +278,7 @@ class PrepSamplesTool(Tool):
         input_trigger = shared_state['input_trigger']
         SAMPLES_DIR = shared_state['SAMPLES_DIR']
         DATASETS_DIR = shared_state['DATASETS_DIR']
+        TEMP_DIR = shared_state['TEMP_DIR']
         get_dataset_folders = shared_state['get_dataset_folders']
         get_dataset_files = shared_state['get_dataset_files']
 
@@ -400,23 +401,52 @@ class PrepSamplesTool(Tool):
         def on_prep_audio_load_handler(audio_file):
             """When audio/video is loaded via file input."""
             if audio_file is None:
-                return gr.update(), ""
+                return gr.update(), "", gr.update()
+
             try:
-                if is_video_file(audio_file):
-                    print(f"{_DIM}Video file detected: {Path(audio_file).name}{_RESET}")
-                    audio_path, message = extract_audio_from_video(audio_file)
+                # Gradio can provide filepath payloads as str, list, or dict depending on upload path.
+                resolved = audio_file
+                if isinstance(resolved, list):
+                    resolved = resolved[0] if resolved else None
+                if isinstance(resolved, dict):
+                    resolved = resolved.get("path") or resolved.get("name") or resolved.get("orig_name")
+
+                if not resolved:
+                    return gr.update(visible=False, value=None), "Unsupported upload payload", gr.update(visible=True)
+
+                resolved = str(resolved)
+
+                if is_video_file(resolved):
+                    print(f"{_DIM}Video file detected: {Path(resolved).name}{_RESET}")
+                    audio_path, message = extract_audio_from_video(resolved)
                     if audio_path:
                         duration = get_audio_duration(audio_path)
                         info = f"[VIDEO] Audio extracted\nDuration: {format_time(duration)} ({duration:.2f}s)"
-                        return audio_path, info
-                    return None, message
-                elif is_audio_file(audio_file):
-                    duration = get_audio_duration(audio_file)
-                    return audio_file, f"Duration: {format_time(duration)} ({duration:.2f}s)"
-                else:
-                    return None, "Unsupported file type"
+                        return gr.update(visible=True, value=audio_path), info, gr.update(visible=False, value=None)
+                    return gr.update(visible=False, value=None), message, gr.update(visible=True)
+
+                if is_audio_file(resolved):
+                    source = Path(resolved)
+                    stable_path = resolved
+
+                    # Copy user uploads into project temp so the editor reads from a stable path.
+                    try:
+                        Path(TEMP_DIR).mkdir(parents=True, exist_ok=True)
+                        import uuid
+                        clean_stem = re.sub(r"[^\w\s.-]", "", source.stem).strip() or "upload"
+                        copied = Path(TEMP_DIR) / f"prep_{clean_stem}_{uuid.uuid4().hex[:8]}{source.suffix.lower()}"
+                        shutil.copy2(str(source), str(copied))
+                        stable_path = str(copied)
+                    except Exception:
+                        stable_path = resolved
+
+                    duration = get_audio_duration(stable_path)
+                    info = f"Duration: {format_time(duration)} ({duration:.2f}s)"
+                    return gr.update(visible=True, value=stable_path), info, gr.update(visible=False, value=None)
+
+                return gr.update(visible=False, value=None), "Unsupported file type", gr.update(visible=True)
             except Exception as e:
-                return None, f"Error: {str(e)}"
+                return gr.update(visible=False, value=None), f"Error: {str(e)}", gr.update(visible=True)
 
         # ===== Delete handler (unified) =====
 
@@ -1666,17 +1696,7 @@ class PrepSamplesTool(Tool):
         components['prep_file_input'].change(
             on_prep_audio_load_handler,
             inputs=[components['prep_file_input']],
-            outputs=[components['prep_audio_editor'], components['prep_status']]
-        ).then(
-            lambda audio: (
-                gr.update(visible=True),
-                gr.update(visible=False)
-            ) if audio is not None else (
-                gr.update(),
-                gr.update()
-            ),
-            inputs=[components['prep_audio_editor']],
-            outputs=[components['prep_audio_editor'], components['prep_file_input']]
+            outputs=[components['prep_audio_editor'], components['prep_status'], components['prep_file_input']]
         )
 
         # --- Audio processing (shared) ---
