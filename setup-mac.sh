@@ -19,33 +19,30 @@ else
 fi
 echo ""
 
-# Find a compatible Python version (3.10-3.12, 3.13+ not supported)
+# Find Python 3.11
 PYTHON_CMD=""
-for PYVER in python3.11 python3.10 python3.12; do
-    if command -v "$PYVER" >/dev/null 2>&1; then
-        PYTHON_CMD="$PYVER"
-        break
-    fi
-done
+if command -v python3.11 >/dev/null 2>&1; then
+    PYTHON_CMD="python3.11"
+fi
 
-# Fall back to python3 if specific versions weren't found
+# Fall back to python3 and validate it's 3.11
 if [ -z "$PYTHON_CMD" ]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_CMD="python3"
     else
-        echo "ERROR: Python not found! Please install Python 3.10-3.12."
-        echo "Install with Homebrew: brew install python@3.12"
+        echo "ERROR: Python not found! Please install Python 3.11."
+        echo "Install with Homebrew: brew install python@3.11"
         exit 1
     fi
 fi
 
-# Validate the version
+# Validate the version is exactly 3.11
 PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
 PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-if [ "$PYTHON_MINOR" -lt 10 ] || [ "$PYTHON_MINOR" -gt 12 ]; then
-    echo "ERROR: Python 3.10-3.12 is required. Detected: $PYTHON_VERSION"
-    echo "Python 3.13+ is not supported due to dependency conflicts."
-    echo "Install with Homebrew: brew install python@3.12"
+if [ "$PYTHON_MINOR" != "11" ]; then
+    echo "ERROR: Python 3.11 is required. Detected: $PYTHON_VERSION"
+    echo "Python 3.10 and 3.12+ are not supported."
+    echo "Install with Homebrew: brew install python@3.11"
     exit 1
 fi
 echo "Using: $PYTHON_CMD (Python $PYTHON_VERSION)"

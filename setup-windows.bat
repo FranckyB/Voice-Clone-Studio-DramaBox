@@ -65,13 +65,9 @@ echo [1/6] Checking Python installation...
 set PYTHON_CMD=
 where py >nul 2>&1
 if %errorlevel% equ 0 (
-    for %%V in (3.11 3.10) do (
-        if not defined PYTHON_CMD (
-            py -%%V --version >nul 2>&1
-            if not errorlevel 1 (
-                set PYTHON_CMD=py -%%V
-            )
-        )
+    py -3.11 --version >nul 2>&1
+    if not errorlevel 1 (
+        set PYTHON_CMD=py -3.11
     )
 )
 
@@ -83,7 +79,8 @@ if not defined PYTHON_CMD (
 )
 
 if not defined PYTHON_CMD (
-    echo ERROR: Python 3.10 or 3.11 is required.
+    echo ERROR: Python 3.11 is required.
+    echo Download: https://www.python.org/downloads/release/python-3119/
     pause
     exit /b 1
 )
@@ -94,17 +91,15 @@ for /f "tokens=1,2 delims=." %%a in ("%PYVER%") do (
     set PYMINOR=%%b
 )
 if not "%PYMAJOR%"=="3" (
-    echo ERROR: Python 3.10-3.11 is required. Detected: %PYVER%
+    echo ERROR: Python 3.11 is required. Detected: %PYVER%
+    echo Download: https://www.python.org/downloads/release/python-3119/
     pause
     exit /b 1
 )
-if %PYMINOR% LSS 10 (
-    echo ERROR: Python 3.10-3.11 is required. Detected: %PYVER%
-    pause
-    exit /b 1
-)
-if %PYMINOR% GTR 11 (
-    echo ERROR: Python 3.12+ is not supported by this setup.
+if not "%PYMINOR%"=="11" (
+    echo ERROR: Python 3.11 is required. Detected: %PYVER%
+    echo Python 3.10 and 3.12+ are not supported.
+    echo Download: https://www.python.org/downloads/release/python-3119/
     pause
     exit /b 1
 )
