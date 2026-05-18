@@ -899,9 +899,9 @@ class TTSManager:
         and kept warm, eliminating the ~19 s model-reload overhead — fast like
         the reference app.py.
 
-        When cpu_offload=True the legacy argv path is used (lower peak VRAM but
-        slow, reloads models on every call) and any existing warm server is torn
-        down to free VRAM.
+        When cpu_offload=True the sequential-loading path is used: each model is
+        loaded to GPU, used, then freed before the next one loads. Lower peak
+        VRAM but slower. Any existing warm server is torn down to free VRAM.
         """
         self._check_and_unload_if_different("dramabox_tts")
 

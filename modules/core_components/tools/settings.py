@@ -164,9 +164,9 @@ class SettingsTool(Tool):
                                 # )
 
                                 components['settings_dramabox_cpu_offload'] = gr.Checkbox(
-                                    label="DramaBox CPU Offloading",
+                                    label="DramaBox Sequential Loading (Low VRAM)",
                                     value=_user_config.get("dramabox_cpu_offload", True),
-                                    info="Saves VRAM but slower — disable for fast warm-server mode.",
+                                    info="Loads one model at a time to save VRAM — disable for fast warm-server mode (all models stay in VRAM).",
                                     interactive=True
                                 )
 

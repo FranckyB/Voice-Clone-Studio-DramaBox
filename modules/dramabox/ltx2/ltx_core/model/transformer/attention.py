@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Protocol
+import logging
 
 import torch
 
@@ -180,6 +181,39 @@ class AttentionFunction(Enum):
             if flash_attn_func is not None:
                 return FlashAttention2()
             return XFormersAttention() if memory_efficient_attention is not None else PytorchAttention()
+
+
+def get_best_attention_function() -> AttentionFunction:
+    """Return the best available AttentionFunction and log the selection.
+
+    Priority: Flash Attention 2 > XFormers > PyTorch SDPA.
+    Each candidate is probed with a tiny tensor to catch installs that import
+    but fail at runtime (e.g. wrong CUDA toolkit version).
+    Always use this instead of reading attention_type from checkpoint config,
+    which may have been baked in as 'xformers' regardless of what is installed.
+    """
+    if flash_attn_func is not None:
+        try:
+            _q = torch.zeros(1, 4, 1, 64, dtype=torch.bfloat16, device="cuda")
+            flash_attn_func(_q, _q, _q)
+            del _q
+            logging.info("Attention: Flash Attention 2")
+            return AttentionFunction.FLASH_ATTENTION_2
+        except Exception as e:
+            logging.warning("Flash Attention 2 probe failed (%s) — trying XFormers", e)
+
+    if memory_efficient_attention is not None:
+        try:
+            _q = torch.zeros(1, 4, 8, 64, dtype=torch.bfloat16, device="cuda")
+            memory_efficient_attention(_q, _q, _q)
+            del _q
+            logging.info("Attention: XFormers")
+            return AttentionFunction.XFORMERS
+        except Exception as e:
+            logging.warning("XFormers probe failed (%s) — falling back to PyTorch SDPA", e)
+
+    logging.info("Attention: PyTorch SDPA")
+    return AttentionFunction.PYTORCH
 
 
 class Attention(torch.nn.Module):

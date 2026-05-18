@@ -320,7 +320,7 @@ def run_inference(args):
     from ltx_core.loader.single_gpu_model_builder import SingleGPUModelBuilder as Builder
     from ltx_core.model.audio_vae import encode_audio as vae_encode_audio
     from ltx_core.model.model_protocol import ModelConfigurator
-    from ltx_core.model.transformer.attention import AttentionFunction
+    from ltx_core.model.transformer.attention import AttentionFunction, get_best_attention_function
     from ltx_core.model.transformer.model import LTXModel, LTXModelType, X0Model
     from ltx_core.model.transformer.rope import LTXRopeType
     from ltx_core.tools import AudioLatentTools
@@ -417,7 +417,7 @@ def run_inference(args):
         voice = Audio(waveform=w, sampling_rate=voice.sampling_rate)
 
         logging.info("Encoding voice through Audio VAE...")
-        ac = AudioConditioner(checkpoint_path=args.full_checkpoint, dtype=dtype, device=offload_device)
+        ac = AudioConditioner(checkpoint_path=args.full_checkpoint, dtype=dtype, device=device)
         ref_latent = ac(lambda enc: vae_encode_audio(voice, enc, None))
         del ac
         torch.cuda.empty_cache()
@@ -479,7 +479,7 @@ def run_inference(args):
                 num_layers=t.get("num_layers", 48),
                 audio_cross_attention_dim=t.get("audio_cross_attention_dim", 2048),
                 norm_eps=t.get("norm_eps", 1e-6),
-                attention_type=AttentionFunction(t.get("attention_type", "default")),
+                attention_type=get_best_attention_function(),
                 positional_embedding_theta=10000.0,
                 audio_positional_embedding_max_pos=[20.0],
                 timestep_scale_multiplier=t.get("timestep_scale_multiplier", 1000),
@@ -665,7 +665,7 @@ def run_inference(args):
 
     # ---- Decode audio ----
     logging.info("Decoding audio...")
-    ad = AudioDecoder(checkpoint_path=args.full_checkpoint, dtype=dtype, device=offload_device)
+    ad = AudioDecoder(checkpoint_path=args.full_checkpoint, dtype=dtype, device=device)
     decoded = ad(latent_in)
     del ad
     torch.cuda.empty_cache()

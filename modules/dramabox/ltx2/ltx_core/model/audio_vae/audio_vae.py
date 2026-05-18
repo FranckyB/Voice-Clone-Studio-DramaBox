@@ -503,6 +503,8 @@ def decode_audio(latent: torch.Tensor, audio_decoder: "AudioDecoder", vocoder: "
     Returns:
         Decoded audio with waveform and sampling rate.
     """
-    decoded_audio = audio_decoder(latent)
+    decoder_device = next(audio_decoder.parameters()).device
+    decoder_dtype = next(audio_decoder.parameters()).dtype
+    decoded_audio = audio_decoder(latent.to(device=decoder_device, dtype=decoder_dtype))
     waveform = vocoder(decoded_audio).squeeze(0).float()
     return Audio(waveform=waveform, sampling_rate=vocoder.output_sampling_rate)
