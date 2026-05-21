@@ -575,7 +575,8 @@ def create_dramabox_advanced_params(
     initial_rescale_scale=-1.0,
     initial_id_guidance_scale=3.0,
     initial_no_watermark=False,
-    visible=True
+    visible=True,
+    open_by_default=False,
 ):
     """
     Reusable DramaBox advanced parameters accordion.
@@ -589,7 +590,7 @@ def create_dramabox_advanced_params(
     """
     components = {}
 
-    with gr.Accordion("DramaBox Parameters", open=False, visible=visible) as accordion:
+    with gr.Accordion("DramaBox Parameters", open=open_by_default, visible=visible) as accordion:
         components['negative_prompt'] = gr.Textbox(
             label="Negative Prompt",
             value=initial_negative_prompt,

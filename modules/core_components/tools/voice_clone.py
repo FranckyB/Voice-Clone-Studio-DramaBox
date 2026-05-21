@@ -112,8 +112,8 @@ class VoiceCloneTool(Tool):
                         precision=0,
                     )
 
-                    # Hardcoded defaults here preserve reset-button behavior; saved values are restored on app.load
-                    _db_params = create_dramabox_advanced_params()
+                    # Initialize open so defaults are created correctly, then auto-collapse on app load.
+                    _db_params = create_dramabox_advanced_params(open_by_default=True)
                     components['dramabox_params_accordion'] = _db_params['accordion']
                     components['dramabox_negative_prompt'] = _db_params['negative_prompt']
                     components['dramabox_ref_duration'] = _db_params['ref_duration']
@@ -192,7 +192,9 @@ class VoiceCloneTool(Tool):
         wire_param_persistence(components, _user_config, param_map)
 
         create_param_restore_handler = shared_state['create_param_restore_handler']
-        restore_fn, restore_outputs = create_param_restore_handler(components, _user_config, param_map)
+        restore_fn, restore_outputs = create_param_restore_handler(
+            components, _user_config, param_map, restore_once=False
+        )
 
         def _short_lora_label(filename):
             """Strip .safetensors extension for display."""
@@ -256,7 +258,17 @@ class VoiceCloneTool(Tool):
             sample_wav = None
             if sample_name:
                 samples = get_available_samples()
-                sample = next((s for s in samples if s["name"] == sample_name), None)
+                normalized_target = sample_name.strip().lower()
+                sample = next(
+                    (
+                        s for s in samples
+                        if normalized_target in {
+                            str(s.get("name", "")).strip().lower(),
+                            str(s.get("stem", "")).strip().lower(),
+                        }
+                    ),
+                    None,
+                )
                 sample_wav = sample["wav_path"] if sample else None
 
             lora_path = None
@@ -445,19 +457,17 @@ class VoiceCloneTool(Tool):
             outputs=[components['lora_dropdown'], components['lora_path_map']]
         )
 
-        components['voice_clone_tab'].select(
+        components['dramabox_params_accordion'].expand(
             restore_fn,
             inputs=[],
-            outputs=restore_outputs
-        )
-
-        shared_state['app'].load(
-            restore_fn,
-            inputs=[],
-            outputs=restore_outputs
+            outputs=restore_outputs,
         )
 
         components['generate_btn'].click(
+            restore_fn,
+            inputs=[],
+            outputs=restore_outputs,
+        ).then(
             generate_audio_handler,
             inputs=[
                 components['sample_lister'],
@@ -484,7 +494,7 @@ class VoiceCloneTool(Tool):
                 components['clone_status'],
                 components['_result_metadata'],
                 components['save_result_btn'],
-            ]
+            ],
         )
 
         if _user_config.get("manual_save", False):
@@ -507,6 +517,11 @@ class VoiceCloneTool(Tool):
                 refresh_lora_choices,
                 inputs=[components['lora_dropdown']],
                 outputs=[components['lora_dropdown'], components['lora_path_map']]
+            )
+            app.load(
+                lambda: gr.update(open=False),
+                inputs=[],
+                outputs=[components['dramabox_params_accordion']]
             )
 
         prompt_apply_trigger = shared_state.get('prompt_apply_trigger')

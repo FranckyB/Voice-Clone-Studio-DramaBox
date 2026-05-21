@@ -98,7 +98,7 @@ class TrainModelTool(Tool):
                 with gr.Column(scale=1):
                     gr.Markdown("### Training Configuration")
 
-                    with gr.Accordion("Training Settings", open=False) as train_accordion:
+                    with gr.Accordion("Training Settings", open=True) as train_accordion:
                         components['train_accordion'] = train_accordion
 
                         # Legacy Qwen section kept hidden in this build
@@ -357,7 +357,7 @@ class TrainModelTool(Tool):
         wire_param_persistence(components, _user_config, param_map)
 
         restore_fn, restore_outputs = create_param_restore_handler(
-            components, _user_config, param_map
+            components, _user_config, param_map, restore_once=False
         )
 
         # Restore saved params when accordion is opened
@@ -521,6 +521,14 @@ class TrainModelTool(Tool):
             inputs=[components['train_folder_dropdown']],
             outputs=[components['train_folder_dropdown']]
         )
+
+        app = shared_state.get('app')
+        if app:
+            app.load(
+                lambda: gr.update(open=False),
+                inputs=[],
+                outputs=[components['train_accordion']]
+            )
 
 
 # Export for tab registry

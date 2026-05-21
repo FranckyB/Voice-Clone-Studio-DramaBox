@@ -911,6 +911,17 @@ class TTSManager:
         dramabox_root = self._ensure_dramabox_modules()
         params = dramabox_params or {}
 
+        resolved_voice_sample = None
+        if voice_sample:
+            resolved_voice_sample = str(Path(voice_sample).expanduser().resolve())
+            if not Path(resolved_voice_sample).exists():
+                raise RuntimeError(f"Voice sample file not found: {resolved_voice_sample}")
+
+        logging.info(
+            "DramaBox: reference audio file: %s",
+            resolved_voice_sample if resolved_voice_sample else "(none)",
+        )
+
         # ------------------------------------------------------------------
         # Warm-server path (cpu_offload=False)
         # ------------------------------------------------------------------
@@ -972,7 +983,7 @@ class TTSManager:
             self._dramabox_server.generate_to_file(
                 prompt=str(prompt).strip(),
                 output=str(output_path),
-                voice_ref=str(voice_sample) if voice_sample else None,
+                voice_ref=resolved_voice_sample,
                 seed=int(seed),
                 lora_path=str(lora_path) if lora_path else None,
                 lora_rank=int(lora_rank) if lora_rank else 128,
@@ -1018,8 +1029,8 @@ class TTSManager:
             "--gemma-root", str(paths["gemma_root"]),
         ]
 
-        if voice_sample:
-            argv.extend(["--voice-sample", str(voice_sample)])
+        if resolved_voice_sample:
+            argv.extend(["--voice-sample", resolved_voice_sample])
         else:
             argv.append("--no-ref")
 

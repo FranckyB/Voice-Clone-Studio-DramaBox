@@ -402,7 +402,7 @@ def wire_param_persistence(components, config, param_map):
             )
 
 
-def create_param_restore_handler(components, config, param_map):
+def create_param_restore_handler(components, config, param_map, restore_once=True):
     """Create a handler that restores saved params for all engines via gr.update().
 
     Returns (handler_fn, output_list) suitable for wiring to .select() or .change().
@@ -414,6 +414,8 @@ def create_param_restore_handler(components, config, param_map):
         config: User config dict
         param_map: Dict of engine -> list of (component_key, param_name) tuples
             (same format as wire_param_persistence)
+        restore_once: If True, restore only once per session. If False, always
+            return updates from saved config (useful for re-applying after reset).
 
     Returns:
         Tuple of (handler_fn, output_components_list)
@@ -428,13 +430,14 @@ def create_param_restore_handler(components, config, param_map):
                 output_list.append(components[comp_key])
                 ordered_keys.append((engine, param_name))
 
-    # Only restore once per session — after first restore, UI already has saved values
+    # Optional one-shot restore mode.
     _restored = [False]
 
     def handler():
-        if _restored[0]:
+        if restore_once and _restored[0]:
             return [gr.update()] * len(ordered_keys)
-        _restored[0] = True
+        if restore_once:
+            _restored[0] = True
         print("Restoring saved engine params")
         updates = []
         for engine, param_name in ordered_keys:
@@ -536,6 +539,12 @@ def get_sample_choices():
     import json
     SAMPLES_DIR = get_configured_dir("samples_folder", "samples")
 
+    def _normalize_sample_name(name, fallback):
+        value = (name or fallback or "").strip()
+        if not value:
+            value = fallback
+        return strip_sample_extension(value)
+
     samples = []
     for wav_file in SAMPLES_DIR.glob("*.wav"):
         json_file = wav_file.with_suffix(".json")
@@ -544,9 +553,11 @@ def get_sample_choices():
             try:
                 with open(json_file, 'r', encoding='utf-8') as f:
                     meta = json.load(f)
-                    name = meta.get("name", wav_file.stem)
+                    name = _normalize_sample_name(meta.get("name", meta.get("Name")), wav_file.stem)
             except:
                 pass
+        else:
+            name = _normalize_sample_name(name, wav_file.stem)
         # Add .wav extension for FileLister file icon display
         if not name.lower().endswith(".wav"):
             name += ".wav"
@@ -569,6 +580,12 @@ def get_available_samples():
     import json
     SAMPLES_DIR = get_configured_dir("samples_folder", "samples")
 
+    def _normalize_sample_name(name, fallback):
+        value = (name or fallback or "").strip()
+        if not value:
+            value = fallback
+        return strip_sample_extension(value)
+
     samples = []
     for wav_file in SAMPLES_DIR.glob("*.wav"):
         json_file = wav_file.with_suffix(".json")
@@ -579,12 +596,15 @@ def get_available_samples():
             try:
                 with open(json_file, 'r', encoding='utf-8') as f:
                     meta = json.load(f)
-                name = meta.get("name", wav_file.stem)
+                name = _normalize_sample_name(meta.get("name", meta.get("Name")), wav_file.stem)
                 ref_text = meta.get("Text", meta.get("text", ""))
             except:
                 pass
+        else:
+            name = _normalize_sample_name(name, wav_file.stem)
         samples.append({
             "name": name,
+            "stem": wav_file.stem,
             "wav_path": str(wav_file),
             "ref_text": ref_text,
             "meta": meta
@@ -594,7 +614,8 @@ def get_available_samples():
 def get_prompt_cache_path(sample_name, model_size):
     """Get cache path for voice prompt."""
     samples_folder = get_configured_dir("samples_folder", "samples")
-    return samples_folder / f"{sample_name}_{model_size}.pt"
+    normalized = strip_sample_extension((sample_name or "").strip())
+    return samples_folder / f"{normalized}_{model_size}.pt"
 
 def load_sample_details(sample_name):
     """
@@ -609,11 +630,18 @@ def load_sample_details(sample_name):
     import soundfile as sf
     samples = get_available_samples()
 
+    target_name = strip_sample_extension(str(sample_name).strip()).lower()
+
     for s in samples:
-        if s["name"] == sample_name:
+        candidate_names = {
+            strip_sample_extension(str(s.get("name", "")).strip()).lower(),
+            strip_sample_extension(str(s.get("stem", "")).strip()).lower(),
+        }
+        if target_name in candidate_names:
+            cache_key_name = strip_sample_extension(s.get("stem") or s.get("name") or sample_name)
             # Check cache status for both model sizes
-            cache_small = get_prompt_cache_path(sample_name, "0.6B").exists()
-            cache_large = get_prompt_cache_path(sample_name, "1.7B").exists()
+            cache_small = get_prompt_cache_path(cache_key_name, "0.6B").exists()
+            cache_large = get_prompt_cache_path(cache_key_name, "1.7B").exists()
 
             if cache_small and cache_large:
                 cache_status = "Qwen Cache: ⚡ Small, Large"
@@ -626,7 +654,7 @@ def load_sample_details(sample_name):
 
             # Check LuxTTS cache status
             SAMPLES_DIR = get_configured_dir("samples_folder", "samples")
-            luxtts_cached = (SAMPLES_DIR / f"{sample_name}_luxtts.pt").exists()
+            luxtts_cached = (SAMPLES_DIR / f"{cache_key_name}_luxtts.pt").exists()
             lux_status = "LuxTTS: ⚡ Cached" if luxtts_cached else "LuxTTS: 📦 Not cached"
 
             try:
